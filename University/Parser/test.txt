@@ -1,0 +1,10 @@
+S' → S S'| Ɛ
+S → A L; | id=E; | id(L); | if(X){S}Q | while(X){S} | Ɛ
+A → char | short | int | long | float | double
+Q → else{S} | Ɛ
+L → id | L , id
+X → ERE
+R → > | >= | < | <= | == | !=
+E → +T | -T | T | E+T | E-T
+T → F | T*F | T/F
+F → id | num | (E)
