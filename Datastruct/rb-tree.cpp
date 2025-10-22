@@ -36,9 +36,9 @@ class RedBlackTree {
   bool remove(const T& value);
   bool remove(iterator& iter);
 
-  iterator& search(const T& value);
-  iterator& lower_bound(const T& value);
-  iterator& upper_bound(const T& value);
+  iterator search(const T& value);
+  iterator lower_bound(const T& value);
+  iterator upper_bound(const T& value);
 
   int size();
 
@@ -153,7 +153,7 @@ void RedBlackTree<T>::init(const T& value) {
 }
 
 template <typename T>
-RedBlackTree<T>::RB_Node* RedBlackTree<T>::find(const T& value) {
+typename RedBlackTree<T>::RB_Node* RedBlackTree<T>::find(const T& value) {
   RB_Node* node = _root;
   _hot = nullptr;
   while (node && node->value_ != value) {
@@ -165,6 +165,76 @@ RedBlackTree<T>::RB_Node* RedBlackTree<T>::find(const T& value) {
     }
   }
   return node;
+}
+
+template <typename T>
+typename RedBlackTree<T>::iterator RedBlackTree<T>::search(const T& value) {
+  return iterator(find(value));
+}
+
+template <typename T>
+typename RedBlackTree<T>::iterator RedBlackTree<T>::lower_bound(
+    const T& value) {
+  RB_Node* node = _root;
+  _hot = nullptr;
+  while (node) {
+    _hot = node;
+    if (node->value_ >= value) {
+      node = node->leftChild_;
+    } else {
+      node = node->rightChild_;
+    }
+  }
+
+  if (_hot->value_ == value) {
+    node = _hot;
+  } else {
+    node = _hot->right_node();
+  }
+  return iterator(node);
+}
+
+template <typename T>
+typename RedBlackTree<T>::iterator RedBlackTree<T>::upper_bound(
+    const T& value) {
+  RB_Node* node = _root;
+  _hot = nullptr;
+  while (node) {
+    _hot = node;
+    if (node->value_ > value) {
+      node = node->leftChild_;
+    } else {
+      node = node->rightChild_;
+    }
+  }
+
+  if (_hot->value_ > value) {
+    node = _hot;
+  } else {
+    node = _hot->right_node();
+  }
+  return iterator(node);
+}
+
+template <typename T>
+typename RedBlackTree<T>::RB_Node* RedBlackTree<T>::zig(
+    typename RedBlackTree<T>::RB_Node* rb_node) {
+  if (!rb_node || !rb_node->leftChild_) return rb_node;
+  rb_node->leftChild_->father_ = rb_node->father_;
+  if (rb_node->father_) {
+    if (rb_node->father_->leftChild_ == rb_node) {
+      rb_node->father_->leftChild_ = rb_node->leftChild_;
+    } else {
+      rb_node->father_->rightChild_ = rb_node->leftChild_;
+    }
+  }
+  if (rb_node->leftChild_->rightChild_) {
+    rb_node->leftChild_->rightChild_->father_ = rb_node;
+  }
+  rb_node->father_ = rb_node->leftChild_;
+  rb_node->leftChild_ = rb_node->leftChild_->rightChild_;
+  rb_node->father_->rightChild_ = rb_node;
+  return rb_node->father_;
 }
 
 int main() { return 0; }
