@@ -10,10 +10,10 @@ template <typename T>
 class RedBlackTree {
  private:
   struct RB_Node;
-  RB_Node* _root;
-  RB_Node* _hot;
+  RB_Node* root_;
+  RB_Node* hot_;
 
-  int _size;
+  int size_;
 
   void init(const T& value);
 
@@ -148,16 +148,16 @@ struct RedBlackTree<T>::iterator {
 
 template <typename T>
 void RedBlackTree<T>::init(const T& value) {
-  _root = new RB_Node(T(), RB_COLOR_BLACK, nullptr, nullptr, nullptr);
-  _size = 1;
+  root_ = new RB_Node(T(), RB_COLOR_BLACK, nullptr, nullptr, nullptr);
+  size_ = 1;
 }
 
 template <typename T>
 typename RedBlackTree<T>::RB_Node* RedBlackTree<T>::find(const T& value) {
-  RB_Node* node = _root;
-  _hot = nullptr;
+  RB_Node* node = root_;
+  hot_ = nullptr;
   while (node && node->value_ != value) {
-    _hot = node;
+    hot_ = node;
     if (node->value_ > value) {
       node = node->leftChild_;
     } else {
@@ -175,10 +175,10 @@ typename RedBlackTree<T>::iterator RedBlackTree<T>::search(const T& value) {
 template <typename T>
 typename RedBlackTree<T>::iterator RedBlackTree<T>::lower_bound(
     const T& value) {
-  RB_Node* node = _root;
-  _hot = nullptr;
+  RB_Node* node = root_;
+  hot_ = nullptr;
   while (node) {
-    _hot = node;
+    hot_ = node;
     if (node->value_ >= value) {
       node = node->leftChild_;
     } else {
@@ -186,10 +186,10 @@ typename RedBlackTree<T>::iterator RedBlackTree<T>::lower_bound(
     }
   }
 
-  if (_hot->value_ == value) {
-    node = _hot;
+  if (hot_->value_ == value) {
+    node = hot_;
   } else {
-    node = _hot->right_node();
+    node = hot_->right_node();
   }
   return iterator(node);
 }
@@ -197,10 +197,10 @@ typename RedBlackTree<T>::iterator RedBlackTree<T>::lower_bound(
 template <typename T>
 typename RedBlackTree<T>::iterator RedBlackTree<T>::upper_bound(
     const T& value) {
-  RB_Node* node = _root;
-  _hot = nullptr;
+  RB_Node* node = root_;
+  hot_ = nullptr;
   while (node) {
-    _hot = node;
+    hot_ = node;
     if (node->value_ > value) {
       node = node->leftChild_;
     } else {
@@ -208,10 +208,10 @@ typename RedBlackTree<T>::iterator RedBlackTree<T>::upper_bound(
     }
   }
 
-  if (_hot->value_ > value) {
-    node = _hot;
+  if (hot_->value_ > value) {
+    node = hot_;
   } else {
-    node = _hot->right_node();
+    node = hot_->right_node();
   }
   return iterator(node);
 }
@@ -256,6 +256,122 @@ typename RedBlackTree<T>::RB_Node* RedBlackTree<T>::zag(
   rb_node->rightChild_ = rb_node->rightChild_->leftChild_;
   rb_node->father_->leftChild_ = rb_node;
   return rb_node->father_;
+}
+
+template <typename T>
+typename RedBlackTree<T>::iterator RedBlackTree<T>::insert(const T& value) {
+  RB_Node* node = find(value);
+  if (node) {
+    return iterator(node);
+  }
+  if (!hot_) {
+    init(value);
+    return iterator(root_);
+  }
+  ++size_;
+  node = new RB_Node(value, RB_COLOR_RED, nullptr, nullptr, hot_);
+  if (hot_->value_ > value) {
+    hot_->leftChild_ = node;
+  } else {
+    hot_->rightChild_ = node;
+  }
+  solveDoubleRed(node);
+  return iterator(node);
+}
+
+template <typename T>
+void RedBlackTree<T>::solveDoubleRed(RB_Node* rb_node) {
+  while (rb_node->father_ &&
+         rb_node->father_->RBc_ == RB_COLOR_BLACK) {  // 排除RR-0
+    RB_Node* father_node = rb_node->father_;
+    RB_Node* grdfather_node = father_node->father_;
+    RB_Node* uncle_node = bro(father_node);
+    if (uncle_node->RBc_ == RB_COLOR_RED) {  // RR-2
+      grdfather_node->RBc_ = RB_COLOR_RED;
+      father_node->RBc_ = RB_COLOR_BLACK;
+      uncle_node->RBc_ = RB_COLOR_BLACK;
+    } else {  // RR-1
+      if (grdfather_node->leftChild_ == father_node) {
+        if (father_node->leftChild_ == rb_node) {
+          if (grdfather_node == root_) {
+            root_ = father_node;
+          }
+          zig(grdfather_node);
+          grdfather_node->RBc_ = RB_COLOR_RED;
+        } else {
+          if (grdfather_node == root_) {
+            root_ = rb_node;
+          }
+          zag(father_node);
+          zig(grdfather_node);
+          rb_node->RBc_ = RB_COLOR_BLACK;
+          grdfather_node->RBc_ = RB_COLOR_RED;
+        }
+      } else {
+        if (father_node->leftChild_ == rb_node) {
+          if (grdfather_node == root_) {
+            root_ = rb_node;
+          }
+          zig(father_node);
+          zag(grdfather_node);
+          rb_node->RBc_ = RB_COLOR_BLACK;
+          grdfather_node->RBc_ = RB_COLOR_RED;
+        } else {
+          if (grdfather_node == root_) {
+            root_ = father_node;
+          }
+          zag(grdfather_node);
+          father_node->RBc_ = RB_COLOR_BLACK;
+          grdfather_node->RBc_ = RB_COLOR_RED;
+        }
+      }
+    }
+  }
+  if (rb_node == root_) {
+    rb_node->RBc_ = RB_COLOR_BLACK;
+  }
+}
+
+template <typename T>
+typename RedBlackTree<T>::iterator RedBlackTree<T>::begin() {
+  RB_Node* ptr = root_;
+  while (ptr->leftChild_) {
+    ptr = ptr->leftChild_;
+  }
+  return iterator(ptr);
+}
+
+template <typename T>
+typename RedBlackTree<T>::iterator RedBlackTree<T>::end() {
+  return iterator(nullptr);
+}
+
+template <typename T>
+int RedBlackTree<T>::size() {
+  return size_;
+}
+
+template <typename T>
+bool RedBlackTree<T>::empty() {
+  return !size_;
+}
+
+template <typename T>
+void RedBlackTree<T>::clear() {
+  removeTree(root_);
+  size_ = 0;
+  root_ = nullptr;
+}
+
+template <typename T>
+void RedBlackTree<T>::removeTree(RB_Node* rb_node) {
+  if (!rb_node) {
+    return;
+  }
+
+  if (rb_node->leftChild_) removeTree(rb_node->leftChild_);
+  if (rb_node->rightChild_) removeTree(rb_node->rightChild_);
+  delete rb_node;
 }
 
 int main() { return 0; }
