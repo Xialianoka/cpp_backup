@@ -237,4 +237,25 @@ typename RedBlackTree<T>::RB_Node* RedBlackTree<T>::zig(
   return rb_node->father_;
 }
 
+template <typename T>
+typename RedBlackTree<T>::RB_Node* RedBlackTree<T>::zag(
+    typename RedBlackTree<T>::RB_Node* rb_node) {
+  if (!rb_node || !rb_node->rightChild_) return rb_node;
+  rb_node->rightChild_->father_ = rb_node->father_;
+  if (rb_node->father_) {
+    if (rb_node->father_->leftChild_ == rb_node) {
+      rb_node->father_->leftChild_ = rb_node->rightChild_;
+    } else {
+      rb_node->father_->rightChild_ = rb_node->rightChild_;
+    }
+  }
+  if (rb_node->rightChild_->leftChild_) {
+    rb_node->rightChild_->leftChild_->father_ = rb_node;
+  }
+  rb_node->father_ = rb_node->rightChild_;
+  rb_node->rightChild_ = rb_node->rightChild_->leftChild_;
+  rb_node->father_->leftChild_ = rb_node;
+  return rb_node->father_;
+}
+
 int main() { return 0; }
