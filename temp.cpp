@@ -1,11 +1,17 @@
-#include <stdio.h>
+#include <iostream>
+#include <vector>
+
+int max(int a, int b) {
+  if (a > b) {
+    return a;
+  } else {
+    return b;
+  }
+}
 
 int main() {
-    float pi, r, s;
-    pi = 3.1415926;
-    printf("请输入圆的半径：");
-    scanf("%f", &r);
-    s = pi * r * r;
-    printf("%f\n", s);
-    return 0;
+  float a = 1, b = 2;
+  double mid = float((a++ + b) / 2);
+  printf("mid = %lf\n", mid);
+  return 0;
 }
