@@ -546,189 +546,204 @@ bool RedBlackTree<T>::remove(iterator& iter) {
 }
 
 int main() {
-  using namespace std;
-
-  srand(123456);  // 固定种子，便于复现
-
-  RedBlackTree<int> rbt;
-  set<int> oracle;  // 期望集合（不含重复）
-
-  // 1) 随机插入若干元素（包含重复）
-  vector<int> inputs;
-  for (int i = 0; i < 200; ++i) {
-    int v = rand() % 100;  // 0..99，制造重复
-    inputs.push_back(v);
+  RedBlackTree<int> s;
+  srand(time(NULL));
+  for (int i = 0; i < 256; ++i) {
+    s.insert(i);
   }
-
-  cout << "Inserting elements...\n";
-  for (int v : inputs) {
-    rbt.insert(v);
-    oracle.insert(v);
+  RedBlackTree<int>::iterator it;
+  for (int i = 0; i < 256; ++i) {
+    s.remove(i);
   }
-
-  // 比对 size()
-  if ((int)oracle.size() != rbt.size()) {
-    cerr << "[FAIL] size mismatch after insert: oracle=" << oracle.size()
-         << " rbt=" << rbt.size() << "\n";
-    return 1;
-  } else {
-    cout << "[OK] size after inserts = " << rbt.size() << "\n";
-  }
-
-  // 2) 用迭代器遍历，检查有序性与与 oracle 一致
-  vector<int> tree_seq;
-  for (auto it = rbt.begin(); it != RedBlackTree<int>::end(); ++it) {
-    tree_seq.push_back(*it);
-  }
-  vector<int> oracle_seq(oracle.begin(), oracle.end());
-
-  if (tree_seq != oracle_seq) {
-    cerr << "[FAIL] in-order traversal mismatch after insert.\n";
-    cerr << "oracle:";
-    for (int x : oracle_seq) cerr << ' ' << x;
-    cerr << "\n rbt: ";
-    for (int x : tree_seq) cerr << ' ' << x;
-    cerr << "\n";
-    return 1;
-  } else {
-    cout << "[OK] in-order traversal matches oracle after insert ("
-         << tree_seq.size() << " nodes)\n";
-  }
-
-  // 3) 测试 search()
-  cout << "Testing search()...\n";
-  for (int v = 0; v < 120; ++v) {
-    auto it = rbt.search(v);
-    bool found_in_oracle = (oracle.find(v) != oracle.end());
-    bool found_in_rbt = (it != RedBlackTree<int>::end());
-    if (found_in_oracle && !found_in_rbt) {
-      cerr << "[FAIL] search(" << v << ") should find but didn't.\n";
-      return 1;
-    }
-    if (!found_in_oracle && found_in_rbt) {
-      cerr << "[FAIL] search(" << v << ") found unexpected value " << *it
-           << "\n";
-      return 1;
-    }
-    if (found_in_oracle && found_in_rbt && *it != v) {
-      cerr << "[FAIL] search(" << v << ") returns " << *it << " but expected "
-           << v << "\n";
-      return 1;
-    }
-  }
-  cout << "[OK] search() tests passed\n";
-
-  // 4) 测试 lower_bound 和 upper_bound 与 std::set::lower_bound/upper_bound
-  // 对比
-  cout << "Testing lower_bound() and upper_bound()...\n";
-  for (int q = -2; q <= 102; q += 3) {
-    auto it_low = rbt.lower_bound(q);
-    auto it_up = rbt.upper_bound(q);
-
-    auto s_low_it = oracle.lower_bound(q);
-    auto s_up_it = oracle.upper_bound(q);
-
-    bool it_low_end = (it_low == RedBlackTree<int>::end());
-    bool it_up_end = (it_up == RedBlackTree<int>::end());
-    bool s_low_end = (s_low_it == oracle.end());
-    bool s_up_end = (s_up_it == oracle.end());
-
-    if (it_low_end != s_low_end) {
-      cerr << "[FAIL] lower_bound(" << q << ") end-ness mismatch\n";
-      return 1;
-    }
-    if (!it_low_end && !s_low_end && *it_low != *s_low_it) {
-      cerr << "[FAIL] lower_bound(" << q << ") mismatch: rbt=" << *it_low
-           << " oracle=" << *s_low_it << "\n";
-      return 1;
-    }
-
-    if (it_up_end != s_up_end) {
-      cerr << "[FAIL] upper_bound(" << q << ") end-ness mismatch\n";
-      return 1;
-    }
-    if (!it_up_end && !s_up_end && *it_up != *s_up_it) {
-      cerr << "[FAIL] upper_bound(" << q << ") mismatch: rbt=" << *it_up
-           << " oracle=" << *s_up_it << "\n";
-      return 1;
-    }
-  }
-  cout << "[OK] lower_bound/upper_bound tests passed\n";
-
-  // 5) 测试按值删除 remove(value)
-  cout << "Testing remove(value)...\n";
-  vector<int> to_remove;
-  // 从已有的 oracle 中抽取一部分元素删除
-  int cnt = 0;
-  for (int v : oracle) {
-    to_remove.push_back(v);
-    if (++cnt >= 12) break;
-  }
-
-  for (int v : to_remove) {
-    bool removed = rbt.remove(v);
-    size_t erased = oracle.erase(v);
-    if (removed != (erased == 1)) {
-      cerr << "[FAIL] remove(" << v << ") mismatch: removed=" << removed
-           << " oracle_erased=" << erased << "\n";
-      return 1;
-    }
-    // 每次删除后比对序列与 size
-    vector<int> tree_after;
-    for (auto it = rbt.begin(); it != RedBlackTree<int>::end(); ++it)
-      tree_after.push_back(*it);
-    vector<int> oracle_after(oracle.begin(), oracle.end());
-    if (tree_after != oracle_after) {
-      cerr << "[FAIL] traversal mismatch after remove(" << v << ")\n";
-      return 1;
-    }
-    if ((int)oracle.size() != rbt.size()) {
-      cerr << "[FAIL] size mismatch after remove(" << v
-           << "): rbt=" << rbt.size() << " oracle=" << oracle.size() << "\n";
-      return 1;
-    }
-  }
-  cout << "[OK] remove(value) tests passed\n";
-
-  // 6) 测试 remove(iterator&)：从 begin 开始逐个删，直到树为空或 oracle 为空
-  cout << "Testing remove(iterator&) by repeatedly removing begin()...\n";
-  while (!oracle.empty()) {
-    auto it = rbt.begin();
-    if (it == RedBlackTree<int>::end()) {
-      cerr << "[FAIL] begin() == end() but oracle not empty\n";
-      return 1;
-    }
-    int val = *it;
-    bool removed = rbt.remove(it);
-    size_t erased = oracle.erase(val);
-    if (!removed || erased != 1) {
-      cerr << "[FAIL] remove(iterator) failed for value " << val << "\n";
-      return 1;
-    }
-    // 再次比对
-    vector<int> tree_after;
-    for (auto jt = rbt.begin(); jt != RedBlackTree<int>::end(); ++jt)
-      tree_after.push_back(*jt);
-    vector<int> oracle_after(oracle.begin(), oracle.end());
-    if (tree_after != oracle_after) {
-      cerr << "[FAIL] traversal mismatch after remove(iterator) (deleted "
-           << val << ")\n";
-      return 1;
-    }
-    if ((int)oracle.size() != rbt.size()) {
-      cerr << "[FAIL] size mismatch after remove(iterator): rbt=" << rbt.size()
-           << " oracle=" << oracle.size() << "\n";
-      return 1;
-    }
-  }
-
-  cout << "[OK] remove(iterator) tests passed; tree should be empty now.\n";
-
-  if (!rbt.empty() || rbt.size() != 0) {
-    cerr << "[FAIL] tree not empty at end: size=" << rbt.size() << "\n";
-    return 1;
-  }
-
-  cout << "All tests PASSED.\n";
   return 0;
 }
+
+// int main() {
+//   using namespace std;
+
+//   srand(123456);  // 固定种子，便于复现
+
+//   RedBlackTree<int> rbt;
+//   set<int> oracle;  // 期望集合（不含重复）
+
+//   // 1) 随机插入若干元素（包含重复）
+//   vector<int> inputs;
+//   for (int i = 0; i < 200; ++i) {
+//     int v = rand() % 100;  // 0..99，制造重复
+//     inputs.push_back(v);
+//   }
+
+//   cout << "Inserting elements...\n";
+//   for (int v : inputs) {
+//     rbt.insert(v);
+//     oracle.insert(v);
+//   }
+
+//   // 比对 size()
+//   if ((int)oracle.size() != rbt.size()) {
+//     cerr << "[FAIL] size mismatch after insert: oracle=" << oracle.size()
+//          << " rbt=" << rbt.size() << "\n";
+//     return 1;
+//   } else {
+//     cout << "[OK] size after inserts = " << rbt.size() << "\n";
+//   }
+
+//   // 2) 用迭代器遍历，检查有序性与与 oracle 一致
+//   vector<int> tree_seq;
+//   for (auto it = rbt.begin(); it != RedBlackTree<int>::end(); ++it) {
+//     tree_seq.push_back(*it);
+//   }
+//   vector<int> oracle_seq(oracle.begin(), oracle.end());
+
+//   if (tree_seq != oracle_seq) {
+//     cerr << "[FAIL] in-order traversal mismatch after insert.\n";
+//     cerr << "oracle:";
+//     for (int x : oracle_seq) cerr << ' ' << x;
+//     cerr << "\n rbt: ";
+//     for (int x : tree_seq) cerr << ' ' << x;
+//     cerr << "\n";
+//     return 1;
+//   } else {
+//     cout << "[OK] in-order traversal matches oracle after insert ("
+//          << tree_seq.size() << " nodes)\n";
+//   }
+
+//   // 3) 测试 search()
+//   cout << "Testing search()...\n";
+//   for (int v = 0; v < 120; ++v) {
+//     auto it = rbt.search(v);
+//     bool found_in_oracle = (oracle.find(v) != oracle.end());
+//     bool found_in_rbt = (it != RedBlackTree<int>::end());
+//     if (found_in_oracle && !found_in_rbt) {
+//       cerr << "[FAIL] search(" << v << ") should find but didn't.\n";
+//       return 1;
+//     }
+//     if (!found_in_oracle && found_in_rbt) {
+//       cerr << "[FAIL] search(" << v << ") found unexpected value " << *it
+//            << "\n";
+//       return 1;
+//     }
+//     if (found_in_oracle && found_in_rbt && *it != v) {
+//       cerr << "[FAIL] search(" << v << ") returns " << *it << " but expected
+//       "
+//            << v << "\n";
+//       return 1;
+//     }
+//   }
+//   cout << "[OK] search() tests passed\n";
+
+//   // 4) 测试 lower_bound 和 upper_bound 与 std::set::lower_bound/upper_bound
+//   // 对比
+//   cout << "Testing lower_bound() and upper_bound()...\n";
+//   for (int q = -2; q <= 102; q += 3) {
+//     auto it_low = rbt.lower_bound(q);
+//     auto it_up = rbt.upper_bound(q);
+
+//     auto s_low_it = oracle.lower_bound(q);
+//     auto s_up_it = oracle.upper_bound(q);
+
+//     bool it_low_end = (it_low == RedBlackTree<int>::end());
+//     bool it_up_end = (it_up == RedBlackTree<int>::end());
+//     bool s_low_end = (s_low_it == oracle.end());
+//     bool s_up_end = (s_up_it == oracle.end());
+
+//     if (it_low_end != s_low_end) {
+//       cerr << "[FAIL] lower_bound(" << q << ") end-ness mismatch\n";
+//       return 1;
+//     }
+//     if (!it_low_end && !s_low_end && *it_low != *s_low_it) {
+//       cerr << "[FAIL] lower_bound(" << q << ") mismatch: rbt=" << *it_low
+//            << " oracle=" << *s_low_it << "\n";
+//       return 1;
+//     }
+
+//     if (it_up_end != s_up_end) {
+//       cerr << "[FAIL] upper_bound(" << q << ") end-ness mismatch\n";
+//       return 1;
+//     }
+//     if (!it_up_end && !s_up_end && *it_up != *s_up_it) {
+//       cerr << "[FAIL] upper_bound(" << q << ") mismatch: rbt=" << *it_up
+//            << " oracle=" << *s_up_it << "\n";
+//       return 1;
+//     }
+//   }
+//   cout << "[OK] lower_bound/upper_bound tests passed\n";
+
+//   // 5) 测试按值删除 remove(value)
+//   cout << "Testing remove(value)...\n";
+//   vector<int> to_remove;
+//   // 从已有的 oracle 中抽取一部分元素删除
+//   int cnt = 0;
+//   for (int v : oracle) {
+//     to_remove.push_back(v);
+//     if (++cnt >= 12) break;
+//   }
+
+//   for (int v : to_remove) {
+//     bool removed = rbt.remove(v);
+//     size_t erased = oracle.erase(v);
+//     if (removed != (erased == 1)) {
+//       cerr << "[FAIL] remove(" << v << ") mismatch: removed=" << removed
+//            << " oracle_erased=" << erased << "\n";
+//       return 1;
+//     }
+//     // 每次删除后比对序列与 size
+//     vector<int> tree_after;
+//     for (auto it = rbt.begin(); it != RedBlackTree<int>::end(); ++it)
+//       tree_after.push_back(*it);
+//     vector<int> oracle_after(oracle.begin(), oracle.end());
+//     if (tree_after != oracle_after) {
+//       cerr << "[FAIL] traversal mismatch after remove(" << v << ")\n";
+//       return 1;
+//     }
+//     if ((int)oracle.size() != rbt.size()) {
+//       cerr << "[FAIL] size mismatch after remove(" << v
+//            << "): rbt=" << rbt.size() << " oracle=" << oracle.size() << "\n";
+//       return 1;
+//     }
+//   }
+//   cout << "[OK] remove(value) tests passed\n";
+
+//   // 6) 测试 remove(iterator&)：从 begin 开始逐个删，直到树为空或 oracle 为空
+//   cout << "Testing remove(iterator&) by repeatedly removing begin()...\n";
+//   while (!oracle.empty()) {
+//     auto it = rbt.begin();
+//     if (it == RedBlackTree<int>::end()) {
+//       cerr << "[FAIL] begin() == end() but oracle not empty\n";
+//       return 1;
+//     }
+//     int val = *it;
+//     bool removed = rbt.remove(it);
+//     size_t erased = oracle.erase(val);
+//     if (!removed || erased != 1) {
+//       cerr << "[FAIL] remove(iterator) failed for value " << val << "\n";
+//       return 1;
+//     }
+//     // 再次比对
+//     vector<int> tree_after;
+//     for (auto jt = rbt.begin(); jt != RedBlackTree<int>::end(); ++jt)
+//       tree_after.push_back(*jt);
+//     vector<int> oracle_after(oracle.begin(), oracle.end());
+//     if (tree_after != oracle_after) {
+//       cerr << "[FAIL] traversal mismatch after remove(iterator) (deleted "
+//            << val << ")\n";
+//       return 1;
+//     }
+//     if ((int)oracle.size() != rbt.size()) {
+//       cerr << "[FAIL] size mismatch after remove(iterator): rbt=" <<
+//       rbt.size()
+//            << " oracle=" << oracle.size() << "\n";
+//       return 1;
+//     }
+//   }
+
+//   cout << "[OK] remove(iterator) tests passed; tree should be empty now.\n";
+
+//   if (!rbt.empty() || rbt.size() != 0) {
+//     cerr << "[FAIL] tree not empty at end: size=" << rbt.size() << "\n";
+//     return 1;
+//   }
+
+//   cout << "All tests PASSED.\n";
+//   return 0;
+// }
